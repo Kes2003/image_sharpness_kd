@@ -57,42 +57,32 @@ A state-of-the-art super-resolution framework that uses knowledge distillation t
 
 ### Training
 
-**Basic Training (MSE Loss Only)**
-
-```bash
-python main.py train --mode basic
-```
-
-**Knowledge Distillation Training**
-
-```bash
-python main.py train --mode kd
-```
-
-**Advanced Training (Full Pipeline)**
-
-```bash
-python main.py train --mode advanced
-```
-
 **DIV2K Optimized Training (Recommended)**
 
 ```bash
 python scripts/train_div2k.py
 ```
 
-### Evaluation
-
-**Evaluate student model**
+**Other Training Modes**
 
 ```bash
-python main.py evaluate --model student
+python scripts/train.py           # Basic training
+python scripts/train_kd.py        # Knowledge distillation
+python scripts/train_advanced.py  # Advanced training
 ```
+
+### Evaluation
 
 **Evaluate on DIV2K validation**
 
 ```bash
 python scripts/evaluate_div2k.py --model student
+```
+
+**General Evaluation**
+
+```bash
+python scripts/evaluate.py
 ```
 
 ### Inference
@@ -113,72 +103,51 @@ python main.py infer input_folder/ output_folder/ --student --sharpen
 
 ```
 image-sharpness-kd/
-├── models/                 # Model architectures and weights
-│   ├── student.py         # Basic student model
-│   ├── student_enhanced.py # Enhanced student model
-│   └── swinir_teacher.py  # SwinIR teacher model
-├── datasets/              # Dataset classes
-│   ├── sharpness_dataset.py
-│   └── div2k_dataset.py
-├── scripts/               # Training and utility scripts
-│   ├── train.py          # Basic training
-│   ├── train_kd.py       # Knowledge distillation
-│   ├── train_advanced.py # Advanced training
-│   ├── train_div2k.py    # DIV2K optimized training
-│   ├── evaluate.py       # Evaluation
-│   └── download_div2k.py # Dataset download
-├── data/                  # Dataset storage (not in repo)
-├── results/              # Training outputs (not in repo)
-├── main.py               # Main CLI interface
-└── requirements.txt      # Dependencies
+├── models/                 # Model architectures
+│   ├── student.py
+│   ├── student_enhanced.py
+│   └── swinir_teacher.py
+├── scripts/                # Training and utility scripts
+│   ├── train.py
+│   ├── train_kd.py
+│   ├── train_advanced.py
+│   ├── train_div2k.py
+│   ├── evaluate.py
+│   ├── evaluate_div2k.py
+│   ├── eval_folder.py
+│   ├── inference.py
+│   ├── advanced_losses.py
+│   ├── losses.py
+│   ├── download_div2k.py
+│   ├── download_edsr_weights.py
+│   ├── visualize_results.py
+│   └── visualize_side_by_side.py
+├── utils/                  # Utility functions
+│   └── dataset.py
+├── main.py                 # Main CLI interface
+├── requirements.txt        # Dependencies
+├── README.md
+├── LICENSE
+├── .gitignore
 ```
 
-## 🔬 Technical Details
-
-### Architecture
+## 🧪 Technical Details
 
 - **Student Model**: Lightweight EDSR-based architecture
 - **Teacher Model**: SwinIR-M (state-of-the-art transformer)
 - **Knowledge Distillation**: Soft target learning with temperature scaling
-- **Loss Functions**: MSE + L1 + MS-SSIM + Distillation loss
-
-### Training Strategy
-
-1. **Data Augmentation**: Random flips, rotations, color jittering
-2. **Patch-based Training**: 192x192 HR patches from DIV2K images
-3. **Progressive Learning**: Multi-scale training with curriculum
-4. **Early Stopping**: Prevents overfitting with patience mechanism
-
-### Dataset
-
-- **Training**: DIV2K 800 images (2048x1080 resolution)
-- **Validation**: DIV2K 100 images
-- **Scale Factor**: 4x upscaling (LR: 512x270 → HR: 2048x1080)
+- **Loss Functions**: MSE + Perceptual + SSIM + Distillation loss
+- **Data Augmentation**: Random flips, rotations, color jittering
+- **Patch-based Training**: 192x192 HR patches from DIV2K images
+- **Early Stopping**: Prevents overfitting with patience mechanism
 
 ## 📈 Performance Optimization
 
-### For SSIM > 0.9:
-
-1. **Use DIV2K dataset**: Full 800 training images
-2. **Larger patches**: 192x192 instead of 64x64
-3. **Knowledge distillation**: Learn from SwinIR teacher
-4. **Advanced loss functions**: Combined MSE + L1 + MS-SSIM
-5. **Proper augmentation**: Random flips, rotations, color jittering
-
-### Training Tips:
-
-- **GPU Memory**: Use batch size 8 for 8GB+ GPUs
-- **Learning Rate**: Start with 2e-4, use cosine annealing
-- **Patience**: Allow 30+ epochs without improvement
-- **Validation**: Check every 5 epochs
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+- Use DIV2K dataset: Full 800 training images
+- Larger patches: 192x192
+- Knowledge distillation: Learn from SwinIR teacher
+- Advanced loss functions: Combined MSE + Perceptual + SSIM
+- Proper augmentation: Random flips, rotations, color jittering
 
 ## 📄 License
 
@@ -191,7 +160,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [DIV2K](https://data.vision.ee.ethz.ch/cvl/DIV2K/) dataset providers
 - [BasicSR](https://github.com/XPixelGroup/BasicSR) framework
 
-## 📞 Contact
+## 📬 Contact
 
 - **Author**: Kesler Concesso
 - **Email**: kesler.concesso@btech.christuniversity.in
