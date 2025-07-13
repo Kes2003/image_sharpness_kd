@@ -23,7 +23,7 @@ from skimage.metrics import structural_similarity as ssim
 from skimage.metrics import peak_signal_noise_ratio as psnr
 
 def calculate_ssim_psnr(sr, hr):
-    """Calculate SSIM and PSNR between SR and HR images."""
+    """Calculate SSIM and PSNR between SR and HR images. Downscale if too large for memory."""
     sr_np = sr.squeeze().cpu().numpy().transpose(1, 2, 0)
     hr_np = hr.squeeze().cpu().numpy().transpose(1, 2, 0)
     
@@ -31,8 +31,15 @@ def calculate_ssim_psnr(sr, hr):
     sr_np = np.clip(sr_np, 0, 1)
     hr_np = np.clip(hr_np, 0, 1)
     
-    # Get image dimensions
+    # Downscale if image is too large for SSIM (e.g., >1024x1024)
+    max_dim = 1024
     h, w = sr_np.shape[:2]
+    if h > max_dim or w > max_dim:
+        from skimage.transform import resize
+        scale = max_dim / max(h, w)
+        new_h, new_w = int(h * scale), int(w * scale)
+        sr_np = resize(sr_np, (new_h, new_w), order=1, mode='reflect', anti_aliasing=True)
+        hr_np = resize(hr_np, (new_h, new_w), order=1, mode='reflect', anti_aliasing=True)
     
     # Calculate SSIM with appropriate window size
     if h < 7 or w < 7:
@@ -84,10 +91,11 @@ def train_div2k():
     # Enhanced student model
     student = EnhancedStudent().to(device)
     
-    # Advanced loss function with better weights
-    combined_loss = CombinedLoss(alpha=1.0, beta=0.1, gamma=0.05, device=device)
-    mse_loss = torch.nn.MSELoss()
-    l1_loss = torch.nn.L1Loss()
+    # Advanced loss function with much higher SSIM weight
+    combined_loss = CombinedLoss(alpha=1.0, beta=0.1, gamma=0.3, device=device)  # gamma=0.3 for strong SSIM focus
+    # Remove redundant MSE/L1 losses from main loss
+    # mse_loss = torch.nn.MSELoss()
+    # l1_loss = torch.nn.L1Loss()
     
     # Optimizer with better parameters
     optimizer = torch.optim.AdamW(student.parameters(), lr=2e-4, weight_decay=1e-4, betas=(0.9, 0.999))
@@ -99,9 +107,9 @@ def train_div2k():
     os.makedirs("models", exist_ok=True)
 
     # Training parameters optimized for DIV2K
-    epochs = 200
+    epochs = 300  # Increased epochs for better convergence
     best_ssim = 0.0
-    patience = 30
+    patience = 50  # Increased patience for early stopping
     patience_counter = 0
 
     print("🎯 Starting DIV2K training with knowledge distillation...")
@@ -122,49 +130,35 @@ def train_div2k():
     for epoch in range(epochs):
         student.train()
         total_loss = 0.0
-        total_mse = 0.0
-        total_distill = 0.0
-        
         # Training loop
         train_pbar = tqdm(train_loader, desc=f'Epoch {epoch+1}/{epochs}')
         for batch_idx, (lr_imgs, hr_imgs) in enumerate(train_pbar):
             lr_imgs = lr_imgs.to(device)
             hr_imgs = hr_imgs.to(device)
-            
             optimizer.zero_grad()
-            
             # Forward pass
             sr_imgs = student(lr_imgs)
-            
             # Teacher prediction (for knowledge distillation)
             with torch.no_grad():
                 teacher_sr = teacher(lr_imgs)
-            
-            # Calculate losses
-            mse_loss_val = mse_loss(sr_imgs, hr_imgs)
-            l1_loss_val = l1_loss(sr_imgs, hr_imgs)
-            
-            # Knowledge distillation loss
+            # Calculate combined loss (focus on SSIM)
+            total_combined_loss, mse_loss_val, perceptual_loss_val, ssim_loss_val = combined_loss(sr_imgs, hr_imgs)
+            # Knowledge distillation loss (keep as before)
             distill_loss = F.mse_loss(
                 F.log_softmax(sr_imgs / temperature, dim=1),
                 F.log_softmax(teacher_sr / temperature, dim=1)
             )
-            
-            # Combined loss
-            loss = alpha * (0.5 * mse_loss_val + 0.5 * l1_loss_val) + beta * distill_loss
-            
+            # Main loss: focus on combined loss (SSIM) and distillation
+            loss = alpha * total_combined_loss + beta * distill_loss
             # Backward pass
             loss.backward()
             optimizer.step()
-            
             total_loss += loss.item()
-            total_mse += mse_loss_val.item()
-            total_distill += distill_loss.item()
-            
             # Update progress bar
             train_pbar.set_postfix({
                 'Loss': f'{loss.item():.4f}',
                 'MSE': f'{mse_loss_val.item():.4f}',
+                'SSIM': f'{ssim_loss_val.item():.4f}',
                 'Distill': f'{distill_loss.item():.4f}'
             })
         

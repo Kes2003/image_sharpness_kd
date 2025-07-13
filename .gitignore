@@ -25,6 +25,7 @@ MANIFEST
 venv/
 venv_edsr113/
 venv_edsr310/
+.venv/
 env/
 ENV/
 env.bak/

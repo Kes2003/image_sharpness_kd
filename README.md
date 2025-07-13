@@ -26,8 +26,8 @@ A state-of-the-art super-resolution framework that uses knowledge distillation t
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/yourusername/image-sharpness-kd.git
-   cd image-sharpness-kd
+   git clone https://github.com/Kes2003/image_sharpness_kd.git
+   cd image_sharpness_kd
    ```
 
 2. **Create virtual environment**
@@ -193,9 +193,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Contact
 
-- **Author**: [Your Name]
-- **Email**: [your.email@example.com]
-- **GitHub**: [@yourusername]
+- **Author**: Kesler Concesso
+- **Email**: kesler.concesso@btech.christuniversity.in
+- **GitHub**: [@Kes2003](https://github.com/Kes2003)
 
 ---
 
